@@ -52,11 +52,11 @@ void Crud::run()
         }
         case Opt::FINISH: {
             goto label_done;
+            break;
         }
         case Opt::INVALID: [[fallthrough]];
         default: {
             std::cout << "Pilihan tidak ditemukan\n";
-            pilihan = getOption();
             goto label_retry;
             break;
         }
