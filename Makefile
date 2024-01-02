@@ -1,5 +1,5 @@
 crud:
-	g++ -std=c++20 -g -fsanitize=address main.cpp crud.cpp -o crud
+	g++ -std=c++17 -g -fsanitize=address -o crud main.cpp crud.cpp
 
 clean:
 	rm crud

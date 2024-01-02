@@ -1,6 +1,7 @@
 #include "crud.hpp"
 
 #include <algorithm>
+#include <ios>
 #include <iostream>
 #include <limits>
 
@@ -150,7 +151,7 @@ void Crud::writeData()
     }
 
     m_data.seekp(0, std::ios::beg);
-    m_data.write(serialized.c_str(), std::ssize(serialized));
+    m_data.write(serialized.c_str(), static_cast<std::streamsize>(serialized.size()));
 }
 
 std::vector<Mahasiswa> Crud::loadData()
@@ -181,7 +182,7 @@ std::vector<Mahasiswa> Crud::loadData()
         m_data.seekg(offset, std::ios::beg);
         std::string serialized;
         serialized.resize(static_cast<std::size_t>(dataSize));
-        m_data.read(serialized.data(), std::ssize(serialized));
+        m_data.read(serialized.data(), static_cast<std::streamsize>(serialized.size()));
 
         auto mahasiswa = Mahasiswa::deserialize(serialized);
         records.push_back(mahasiswa);
@@ -277,15 +278,16 @@ label_retry:
     }
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-    auto erased = std::erase_if(m_records, [&nomor](const auto& record) {
+    auto found = std::find_if(m_records.begin(), m_records.end(), [&nomor](const auto& record) {
         return record.m_pk == static_cast<int>(nomor);
     });
 
-    if (erased > 0) {
-        std::cout << "item nomor " << nomor << " dihapus\n";
-    } else {
+    if (found == m_records.end()) {
         std::cout << "item nomor " << nomor << " tidak ditemukan\n";
         goto label_retry;
+    } else {
+        m_records.erase(found);
+        std::cout << "item nomor " << nomor << " dihapus\n";
     }
 
     m_isDataChanged = true;
