@@ -19,7 +19,7 @@ public:
         FINISH,
     };
 
-    static constexpr std::string s_dataFileName = "data.bin";
+    static constexpr std::string_view s_dataFileName = "data.bin";
 
 private:
     /*
@@ -32,8 +32,8 @@ private:
      */
     std::fstream           m_data;
     std::vector<Mahasiswa> m_records;
-    bool                   m_isDataChanged = false;
     int                    m_recordCounter;
+    bool                   m_isDataChanged = false;
 
 public:
     Crud();

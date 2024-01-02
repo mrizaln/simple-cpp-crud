@@ -85,7 +85,7 @@ void Crud::run()
 
 std::fstream Crud::initializeDatabase()
 {
-    std::fstream file{ "data.bin", std::ios::out | std::ios::in | std::ios::binary };
+    std::fstream file{ s_dataFileName.data(), std::ios::out | std::ios::in | std::ios::binary };
 
     // check file ada atau tidak
     if (file.is_open()) {
@@ -93,7 +93,7 @@ std::fstream Crud::initializeDatabase()
     } else {
         std::cout << "database tidak ditemukan, buat database baru\n";
         file.close();
-        file.open("data.bin", std::ios::trunc | std::ios::out | std::ios::in | std::ios::binary);
+        file.open(s_dataFileName.data(), std::ios::trunc | std::ios::out | std::ios::in | std::ios::binary);
 
         const int  initialSize    = 0;
         IntBinType initialSizeBin = intToBin(initialSize);
