@@ -76,16 +76,6 @@ struct Mahasiswa
             && m_jurusan == other.m_jurusan;
         // clang-format on
     }
-
-    friend std::ostream& operator<<(std::ostream& os, const Mahasiswa& mahasiswa)
-    {
-        os << "Mahasiswa:\n";
-        os << "\tPK: " << mahasiswa.m_pk << '\n';
-        os << "\tNIM: " << mahasiswa.m_nim << '\n';
-        os << "\tNama: " << mahasiswa.m_nama << '\n';
-        os << "\tJurusan: " << mahasiswa.m_jurusan << '\n';
-        return os;
-    }
 };
 
 #endif /* end of include guard: MAHASISWA_HPP_VG5TNJFV */
