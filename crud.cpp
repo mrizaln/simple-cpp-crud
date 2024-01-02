@@ -1,12 +1,22 @@
 #include "crud.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <cstdio>
 #include <ios>
 #include <iostream>
 #include <limits>
+#include <thread>
+
+// go to the start of the screen and clear the screen
+#define DO_RESET_SCREEN 1
 
 Crud::Crud()
     : m_data{ initializeDatabase() }
+    , m_cin{ [this] {
+        std::cout << "EOF\n";
+        m_terminate = true;
+    } }
     , m_records{ loadData() }
     , m_recordCounter{ 1 }
 {
@@ -26,27 +36,32 @@ void Crud::run()
 {
     Crud::Opt pilihan = Crud::Opt::INVALID;
     while (pilihan != Opt::FINISH) {
-    label_retry:
+
+    label_retry:;
+
         pilihan = getOption();
 
         switch (pilihan) {
         case Opt::CREATE: {
-            std::cout << "Menambah data mahasiswa\n";
+            std::cout << "\nMenambah data mahasiswa\n";
+            displayRecord();
             addRecord();
             break;
         }
         case Opt::READ: {
-            std::cout << "Tampilkan data mahasiswa\n";
+            std::cout << "\nTampilkan data mahasiswa\n";
             displayRecord();
             break;
         }
         case Opt::UPDATE: {
-            std::cout << "Ubah data mahasiswa\n";
+            std::cout << "\nUbah data mahasiswa\n";
+            displayRecord();
             updateRecord();
             break;
         }
         case Opt::DELETE: {
-            std::cout << "Hapus data mahasiswa\n";
+            std::cout << "\nHapus data mahasiswa\n";
+            displayRecord();
             deleteRecord();
             break;
         }
@@ -57,20 +72,25 @@ void Crud::run()
         case Opt::INVALID: [[fallthrough]];
         default: {
             std::cout << "Pilihan tidak ditemukan\n";
-            goto label_retry;
+            constexpr auto delayTime = std::chrono::milliseconds(500);
+            std::this_thread::sleep_for(delayTime);
+            if (!m_terminate) {
+                goto label_retry;
+            }
             break;
         }
         }
 
-    label_continue:
+    label_continue:;
+
+        if (m_terminate) {
+            std::cout << "\nApplication terminated\n";
+            break;
+        }
 
         char is_continue;
-        std::cout << "Lanjutkan?(y/n) : ";
-        std::cin >> is_continue;
-        if (std::cin.fail()) {
-            std::cin.clear();
-        }
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << "\n>>> Lanjutkan?(y/n) : ";
+        m_cin >> is_continue;
 
         if ((is_continue == 'y') || (is_continue == 'Y')) {
             goto label_retry;
@@ -82,23 +102,37 @@ void Crud::run()
 
     label_done:;
     }
+
+    std::cout << "\nSelesai\n";
 }
 
 std::fstream Crud::initializeDatabase()
 {
     std::fstream file{ s_dataFileName.data(), std::ios::out | std::ios::in | std::ios::binary };
 
+#if DO_RESET_SCREEN
+    std::cout << "\033[H\033[2J";
+#endif
+
     // check file ada atau tidak
     if (file.is_open()) {
-        std::cout << "database ditemukan\n";
+        std::cout << "Database ditemukan\n";
+
+        // just so the user can see whether the database is exist or not
+        constexpr auto delayTime = std::chrono::milliseconds(500);
+        std::this_thread::sleep_for(delayTime);
     } else {
-        std::cout << "database tidak ditemukan, buat database baru\n";
+        std::cout << "Database tidak ditemukan, buat database baru\n";
         file.close();
         file.open(s_dataFileName.data(), std::ios::trunc | std::ios::out | std::ios::in | std::ios::binary);
 
         const int  initialSize    = 0;
         IntBinType initialSizeBin = intToBin(initialSize);
         file.write(initialSizeBin.data(), initialSizeBin.size());
+
+        // a little longer for this one
+        constexpr auto delayTime = std::chrono::milliseconds(1'000);
+        std::this_thread::sleep_for(delayTime);
     }
 
     return file;
@@ -106,27 +140,26 @@ std::fstream Crud::initializeDatabase()
 
 Crud::Opt Crud::getOption()
 {
-    int input;
+    int input{ 0 };
 
-    // system("clear");
-    // system("cls");
+#if DO_RESET_SCREEN
+    std::cout << "\033[H\033[2J";
+#endif
 
-    std::cout << "\nProgram CRUD data mahasiswa\n";
-    std::cout << "=============================\n";
-    std::cout << "1. Tambah data mahasiswa\n";
-    std::cout << "2. Tampilkan data mahasiswa\n";
-    std::cout << "3. Ubah data mahasiswa\n";
-    std::cout << "4. Hapus data mahasiswa\n";
-    std::cout << "5. Selesai\n";
-    std::cout << "=============================\n";
-    std::cout << "pilih [1-5]? : ";
-    std::cin >> input;
+    std::cout << "| Program CRUD data mahasiswa |\n"
+                 "| --------------------------- |\n"
+                 "| 1. Tambah data mahasiswa    |\n"
+                 "| 2. Tampilkan data mahasiswa |\n"
+                 "| 3. Ubah data mahasiswa      |\n"
+                 "| 4. Hapus data mahasiswa     |\n"
+                 "| 5. Selesai                  |\n\n";
 
-    if (std::cin.fail()) {
-        std::cin.clear();
-        input = 0;
+    std::cout << ">>> Pilih [1-5]: ";
+    m_cin >> input;
+
+    if (m_terminate) {
+        return Opt::FINISH;
     }
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
     if (input > 0 && input <= static_cast<int>(Opt::FINISH)) {
         return static_cast<Opt>(input);
@@ -204,18 +237,21 @@ std::vector<Mahasiswa> Crud::loadData()
 void Crud::addRecord()
 {
     Mahasiswa inputMahasiswa;
+    auto& [pk, nim, nama, jurusan]{ inputMahasiswa };
 
-    std::cout << "ukuran data : " << m_records.size() << '\n';
+    std::cout << "Ukuran data : " << m_records.size() << '\n';
 
-    inputMahasiswa.m_pk = m_recordCounter++;
-    std::cout << "pk = " << inputMahasiswa.m_pk << '\n';
+    // clang-format off
+    std::cout << "\nInput data baru\n";
+    std::cout << "    PK      : " << (pk = m_recordCounter++) << '\n';
+    std::cout << ">>> Nama    : "; m_cin.getline(nama);
+    std::cout << ">>> Jurusan : "; m_cin.getline(jurusan);
+    std::cout << ">>> NIM     : "; m_cin.getline(nim);
+    // clang-format on
 
-    std::cout << "Nama: ";
-    getline(std::cin, inputMahasiswa.m_nama);
-    std::cout << "Jurusan: ";
-    getline(std::cin, inputMahasiswa.m_jurusan);
-    std::cout << "NIM: ";
-    getline(std::cin, inputMahasiswa.m_nim);
+    if (m_terminate) {
+        return;
+    }
 
     m_records.push_back(inputMahasiswa);
 
@@ -224,44 +260,73 @@ void Crud::addRecord()
 
 void Crud::displayRecord()
 {
-    for (const auto& mahasiswa : m_records) {
-        std::cout << mahasiswa << '\n';
+    // string formatting before std::format is such a hassle, sigh...
+    constexpr std::size_t w_d    = 3;
+    constexpr std::size_t w_s    = 25;
+    constexpr const char* format = "| %%%zu%c | %%%zu%c | %%-%zu.%zus | %%-%zu.%zus | %%-%zu.%zus |\n";
+    const std::size_t     w_f    = std::strlen(format);    // for format bufffer, won't be longer than above
+
+    const auto t = [&](const std::string& str) {
+        if (str.size() > w_s) {
+            return str.substr(0, w_s - 3) + "...";
+        }
+        return str;
+    };
+
+    std::string sep_fmt(w_f, '\0');
+    std::sprintf(sep_fmt.data(), format, w_d, 's', w_d, 's', w_s, w_s, w_s, w_s, w_s, w_s);
+
+    std::string record_fmt(w_f, '\0');
+    std::sprintf(record_fmt.data(), format, w_d, 'd', w_d, 'd', w_s, w_s, w_s, w_s, w_s, w_s);
+
+    std::printf(sep_fmt.c_str(), "No", "PK", "NIM", "Nama", "Jurusan");
+
+    const auto s   = [](std::size_t w) { return std::string(w, '-'); };
+    const auto s_d = s(w_d);
+    const auto s_s = s(w_s);
+    std::printf(sep_fmt.c_str(), s_d.c_str(), s_d.c_str(), s_s.c_str(), s_s.c_str(), s_s.c_str());
+
+    for (std::size_t i{ 0 }; i < m_records.size(); ++i) {
+        const auto& [pk, nim, nama, jurusan]{ m_records.at(i) };
+        std::printf(record_fmt.c_str(), i + 1, pk, t(nim).c_str(), t(nama).c_str(), t(jurusan).c_str());
     }
 }
 
 void Crud::updateRecord()
 {
 label_retry:
-    std::size_t nomor;
-    std::cout << "pilih no: ";
-    std::cin >> nomor;
+    int pk;
+    std::cout << ">>> Pilih PK (0 untuk batal): ";
+    m_cin >> pk;
 
-    if (std::cin.fail()) {
-        std::cin.clear();
-    }
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-    auto record = std::find_if(m_records.begin(), m_records.end(), [nomor](const auto& record) {
-        return record.m_pk == static_cast<int>(nomor);
+    auto record = std::find_if(m_records.begin(), m_records.end(), [pk](const auto& record) {
+        return record.m_pk == static_cast<int>(pk);
     });
 
+    if (m_terminate || pk == 0) {
+        return;
+    }
+
     if (record == m_records.end()) {
-        std::cout << "record nomor " << nomor << " tidak ditemukan\n";
+        std::cout << "Item dengan PK" << pk << " tidak ditemukan\n";
         goto label_retry;
     }
 
     std::cout << "\n\npilihan data: " << '\n';
-    std::cout << "NIM : " << record->m_nim << '\n';
-    std::cout << "nama : " << record->m_nama << '\n';
-    std::cout << "jurusan : " << record->m_jurusan << '\n';
+    std::cout << "Nama   : " << record->m_nama << '\n';
+    std::cout << "Jurusan: " << record->m_jurusan << '\n';
+    std::cout << "NIM    : " << record->m_nim << '\n';
 
     std::cout << "\nMerubah data: \n";
-    std::cout << "NIM: ";
-    std::getline(std::cin, record->m_nim);
-    std::cout << "nama: ";
-    std::getline(std::cin, record->m_nama);
-    std::cout << "jurusan: ";
-    std::getline(std::cin, record->m_jurusan);
+    // clang-format off
+    std::cout << ">>> Nama   : "; m_cin.getline(record->m_nama);
+    std::cout << ">>> Jurusan: "; m_cin.getline(record->m_jurusan);
+    std::cout << ">>> NIM    : "; m_cin.getline(record->m_nim);
+    // clang-format on
+
+    if (m_terminate) {
+        return;
+    }
 
     m_isDataChanged = true;
 }
@@ -269,25 +334,24 @@ label_retry:
 void Crud::deleteRecord()
 {
 label_retry:
-    std::size_t nomor;
-    std::cout << "Hapus nomor: ";
-    std::cin >> nomor;
+    int pk;
+    std::cout << ">>> Pilih PK untuk dihapus (0 untuk batal): ";
+    m_cin >> pk;
 
-    if (std::cin.fail()) {
-        std::cin.clear();
+    if (m_terminate || pk == 0) {
+        return;
     }
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-    auto found = std::find_if(m_records.begin(), m_records.end(), [&nomor](const auto& record) {
-        return record.m_pk == static_cast<int>(nomor);
+    auto found = std::find_if(m_records.begin(), m_records.end(), [&pk](const auto& record) {
+        return record.m_pk == static_cast<int>(pk);
     });
 
     if (found == m_records.end()) {
-        std::cout << "item nomor " << nomor << " tidak ditemukan\n";
+        std::cout << "Item dengan PK " << pk << " tidak ditemukan\n";
         goto label_retry;
     } else {
         m_records.erase(found);
-        std::cout << "item nomor " << nomor << " dihapus\n";
+        std::cout << "Item dengan PK " << pk << " dihapus\n";
     }
 
     m_isDataChanged = true;

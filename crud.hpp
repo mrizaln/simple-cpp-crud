@@ -2,6 +2,7 @@
 #define CRUD_HPP_OLXZWVP0
 
 #include "mahasiswa.hpp"
+#include "cin_wrapper.hpp"
 
 #include <fstream>
 #include <vector>
@@ -32,26 +33,28 @@ private:
      *    (4 bytes [see: intToBin() in util.hpp])
      */
     std::fstream           m_data;
+    CinWrapper             m_cin;
     std::vector<Mahasiswa> m_records;
     int                    m_recordCounter;
     bool                   m_isDataChanged = false;
+    bool                   m_terminate     = false;
 
 public:
     Crud();
     Crud(const Crud&)            = delete;
     Crud& operator=(const Crud&) = delete;
-    Crud(Crud&&)                 = default;
-    Crud& operator=(Crud&&)      = default;
+    Crud(Crud&&)                 = delete;
+    Crud& operator=(Crud&&)      = delete;
     ~Crud();
 
     void run();
 
 private:
-    static Opt             getOption();
     static std::fstream    initializeDatabase();
     std::vector<Mahasiswa> loadData();
     void                   writeData();
 
+    Opt  getOption();
     void addRecord();        // CREATE
     void displayRecord();    // READ
     void updateRecord();     // UPDATE
