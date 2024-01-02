@@ -1,0 +1,13 @@
+Checks:
+  modernize-*
+  bugprone-*
+  performance-*
+  readability-*
+  misc-*
+  cppcoreguidelines-special-member-functions
+  -modernize-use-trailing-return-type
+  -modernize-use-nodiscard
+  -readability-redundant-access-specifiers
+  -misc-non-private-member-variables-in-classes
+  -readability-identifier-length
+  -bugprone-easily-swappable-parameters     # ignore this for now

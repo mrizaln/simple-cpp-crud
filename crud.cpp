@@ -10,7 +10,7 @@ Crud::Crud()
     , m_records{ loadData() }
     , m_recordCounter{ 1 }
 {
-    if (m_records.size() > 0) {
+    if (!m_records.empty()) {
         m_recordCounter = m_records.back().m_pk + 1;
     }
 }
@@ -72,9 +72,9 @@ void Crud::run()
         }
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-        if ((is_continue == 'y') | (is_continue == 'Y')) {
+        if ((is_continue == 'y') || (is_continue == 'Y')) {
             goto label_retry;
-        } else if ((is_continue == 'n') | (is_continue == 'N')) {
+        } else if ((is_continue == 'n') || (is_continue == 'N')) {
             break;
         } else {
             goto label_continue;
@@ -130,9 +130,9 @@ Crud::Opt Crud::getOption()
 
     if (input > 0 && input <= static_cast<int>(Opt::FINISH)) {
         return static_cast<Opt>(input);
-    } else {
-        return Opt::INVALID;
     }
+
+    return Opt::INVALID;
 }
 
 void Crud::writeData()

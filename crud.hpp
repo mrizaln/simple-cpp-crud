@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <vector>
+#include <string_view>
 
 class Crud
 {
@@ -46,11 +47,11 @@ public:
     void run();
 
 private:
+    static Opt             getOption();
     static std::fstream    initializeDatabase();
     std::vector<Mahasiswa> loadData();
     void                   writeData();
 
-    Opt  getOption();
     void addRecord();        // CREATE
     void displayRecord();    // READ
     void updateRecord();     // UPDATE

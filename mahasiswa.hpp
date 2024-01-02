@@ -8,7 +8,7 @@
 
 struct Mahasiswa
 {
-    int         m_pk;
+    int         m_pk = 0;
     std::string m_nim;
     std::string m_nama;
     std::string m_jurusan;
