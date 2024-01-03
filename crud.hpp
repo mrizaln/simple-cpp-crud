@@ -55,10 +55,10 @@ private:
     void                   writeData();
 
     Opt  getOption();
-    void addRecord();        // CREATE
-    void displayRecord();    // READ
-    void updateRecord();     // UPDATE
-    void deleteRecord();     // DELETE
+    void addRecord();                            // CREATE
+    void displayRecords(bool prompt = false);    // READ
+    void updateRecord();                         // UPDATE
+    void deleteRecord();                         // DELETE
 };
 
 #endif /* end of include guard: CRUD_HPP_OLXZWVP0 */

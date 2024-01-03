@@ -14,7 +14,7 @@
 Crud::Crud()
     : m_data{ initializeDatabase() }
     , m_cin{ [this] {
-        std::cout << "EOF\n";
+        std::cout << "\nEOF eaten! Terminating...\n";
         m_terminate = true;
     } }
     , m_records{ loadData() }
@@ -44,24 +44,24 @@ void Crud::run()
         switch (pilihan) {
         case Opt::CREATE: {
             std::cout << "\nMenambah data mahasiswa\n";
-            displayRecord();
+            displayRecords();
             addRecord();
             break;
         }
         case Opt::READ: {
             std::cout << "\nTampilkan data mahasiswa\n";
-            displayRecord();
+            displayRecords(true);
             break;
         }
         case Opt::UPDATE: {
             std::cout << "\nUbah data mahasiswa\n";
-            displayRecord();
+            displayRecords();
             updateRecord();
             break;
         }
         case Opt::DELETE: {
             std::cout << "\nHapus data mahasiswa\n";
-            displayRecord();
+            displayRecords();
             deleteRecord();
             break;
         }
@@ -84,7 +84,6 @@ void Crud::run()
     label_continue:;
 
         if (m_terminate) {
-            std::cout << "\nApplication terminated\n";
             break;
         }
 
@@ -109,10 +108,6 @@ void Crud::run()
 std::fstream Crud::initializeDatabase()
 {
     std::fstream file{ s_dataFileName.data(), std::ios::out | std::ios::in | std::ios::binary };
-
-#if DO_RESET_SCREEN
-    std::cout << "\033[H\033[2J";
-#endif
 
     // check file ada atau tidak
     if (file.is_open()) {
@@ -258,11 +253,11 @@ void Crud::addRecord()
     m_isDataChanged = true;
 }
 
-void Crud::displayRecord()
+void Crud::displayRecords(bool prompt)
 {
     // string formatting before std::format is such a hassle, sigh...
     constexpr std::size_t w_d    = 3;
-    constexpr std::size_t w_s    = 25;
+    constexpr std::size_t w_s    = 30;
     constexpr const char* format = "| %%%zu%c | %%%zu%c | %%-%zu.%zus | %%-%zu.%zus | %%-%zu.%zus |\n";
     const std::size_t     w_f    = std::strlen(format);    // for format bufffer, won't be longer than above
 
@@ -290,14 +285,63 @@ void Crud::displayRecord()
         const auto& [pk, nim, nama, jurusan]{ m_records.at(i) };
         std::printf(record_fmt.c_str(), i + 1, pk, t(nim).c_str(), t(nama).c_str(), t(jurusan).c_str());
     }
+
+    if (!prompt) {
+        return;
+    }
+
+    // save cursor position
+    std::cout << "\033[s";
+
+    while (true) {
+        // restore cursor position
+        std::cout << "\033[u";
+
+        int pk;
+        std::cout << "\n>>> Pilih PK untuk melihat detail (0 untuk batal): ";
+        m_cin >> pk;
+
+        // go to previous line then clear it to the end of screen, then go to the next line
+        std::cout << "\033[F\033[J\033[E";
+
+        if (m_cin.previousFail()) {
+            std::cout << "> Input tidak valid\n";
+            continue;
+        }
+
+        if (m_terminate || pk == 0) {
+            break;
+        }
+
+        auto found = std::find_if(m_records.begin(), m_records.end(), [&pk](const auto& record) {
+            return record.m_pk == static_cast<int>(pk);
+        });
+
+        if (found == m_records.end()) {
+            std::cout << "> Item dengan PK " << pk << " tidak ditemukan\n";
+            continue;
+        }
+
+        const auto& [_, nim, nama, jurusan]{ *found };
+        std::cout << "> Detail data untuk PK " << pk << '\n';
+        std::cout << "\tPK     : " << pk << '\n';    // redundant, but for consistency
+        std::cout << "\tNama   : " << nama << '\n';
+        std::cout << "\tJurusan: " << jurusan << '\n';
+        std::cout << "\tNIM    : " << nim << '\n';
+    }
 }
 
 void Crud::updateRecord()
 {
 label_retry:
     int pk;
-    std::cout << ">>> Pilih PK (0 untuk batal): ";
+    std::cout << "\n>>> Pilih PK (0 untuk batal): ";
     m_cin >> pk;
+
+    if (m_cin.previousFail()) {
+        std::cout << "Input tidak valid\n";
+        goto label_retry;
+    }
 
     auto record = std::find_if(m_records.begin(), m_records.end(), [pk](const auto& record) {
         return record.m_pk == static_cast<int>(pk);
@@ -335,8 +379,13 @@ void Crud::deleteRecord()
 {
 label_retry:
     int pk;
-    std::cout << ">>> Pilih PK untuk dihapus (0 untuk batal): ";
+    std::cout << "\n>>> Pilih PK untuk dihapus (0 untuk batal): ";
     m_cin >> pk;
+
+    if (m_cin.previousFail()) {
+        std::cout << "Input tidak valid\n";
+        goto label_retry;
+    }
 
     if (m_terminate || pk == 0) {
         return;
