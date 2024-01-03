@@ -11,7 +11,7 @@
 class Crud
 {
 public:
-    enum class Opt
+    enum class Opt : int
     {
         INVALID = 0,
         CREATE,
@@ -55,10 +55,12 @@ private:
     void                   writeData();
 
     Opt  getOption();
-    void addRecord();                            // CREATE
-    void displayRecords(bool prompt = false);    // READ
-    void updateRecord();                         // UPDATE
-    void deleteRecord();                         // DELETE
+    void displayRecords();    // READ also
+
+    void promptCreate();    // CREATE
+    void promptRead();      // READ
+    void promptUpdate();    // UPDATE
+    void promptDelete();    // DELETE
 };
 
 #endif /* end of include guard: CRUD_HPP_OLXZWVP0 */
